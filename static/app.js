@@ -7,6 +7,12 @@ const STATUS_COLORS = {
   reserved: "#f59e0b",
   maintenance: "#94a3b8",
 };
+const SECTIONS = {
+  car:      { name: "Car Section",                icon: "🚗", zones: ["A", "B", "P"], cls: "car" },
+  bike:     { name: "Bike / Two-Wheeler Section", icon: "🛵", zones: ["M"],           cls: "bike" },
+  ev:       { name: "EV Charging Section",        icon: "⚡", zones: ["E"],           cls: "ev" },
+  disabled: { name: "Accessible Section",         icon: "♿", zones: ["D"],           cls: "disabled" },
+};
 const ZONE_TYPES = {
   A: "standard", B: "standard", P: "premium", E: "ev", D: "disabled", M: "bike",
 };
@@ -71,12 +77,13 @@ async function refreshLot() {
       "sim " + fmtHour(st.sim_hour);
   } catch { /* non-fatal */ }
 
-  const zones = {};
-  for (const slot of data.slots) (zones[slot.zone] ||= []).push(slot);
+  const byZone = {};
+  for (const slot of data.slots) (byZone[slot.zone] ||= []).push(slot);
 
   const lot = document.getElementById("lot");
   lot.innerHTML = "";
-  for (const [zone, slots] of Object.entries(zones)) {
+
+  const renderZoneGroup = (parent, zone, slots) => {
     const occ = slots.filter((x) => x.status === "occupied").length;
     const block = document.createElement("div");
     block.className = "zone-block";
@@ -93,8 +100,27 @@ async function refreshLot() {
       card.title = `${slot.code} · ${slot.status}`;
       map.appendChild(card);
     }
-    lot.appendChild(block);
+    parent.appendChild(block);
+  };
+
+  for (const [sec, spec] of Object.entries(SECTIONS)) {
+    const zonesIn = spec.zones.filter((z) => byZone[z]);
+    if (!zonesIn.length) continue;
+    const all = zonesIn.flatMap((z) => byZone[z]);
+    const occ = all.filter((x) => x.status === "occupied").length;
+    const wrapper = document.createElement("div");
+    wrapper.className = `section-block section-${spec.cls}`;
+    wrapper.innerHTML = `
+      <div class="section-header">
+        <span class="section-title">${spec.icon} ${spec.name}</span>
+        <span class="section-stats">${all.length - occ} free · ${occ}/${all.length} occupied</span>
+      </div>`;
+    for (const z of zonesIn) renderZoneGroup(wrapper, z, byZone[z]);
+    lot.appendChild(wrapper);
+    zonesIn.forEach((z) => delete byZone[z]);
   }
+  // any zones not covered by a named section (future-proofing)
+  for (const [zone, slots] of Object.entries(byZone)) renderZoneGroup(lot, zone, slots);
 }
 
 async function tick5() {

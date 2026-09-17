@@ -44,6 +44,7 @@ class Slot(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     code: Mapped[str] = mapped_column(String(12), unique=True)   # e.g. A-07
     zone: Mapped[str] = mapped_column(String(2))                 # A / B / P / E / D / M
+    section: Mapped[str] = mapped_column(String(12), default="car")  # car/bike/ev/disabled
     slot_type: Mapped[str] = mapped_column(String(12))           # standard/premium/ev/disabled/bike
     price_per_hour: Mapped[float] = mapped_column(Float)
     status: Mapped[str] = mapped_column(String(12), default="free")  # free/reserved/occupied/maintenance

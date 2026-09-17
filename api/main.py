@@ -75,7 +75,8 @@ def health():
 
 # ---------------------------------------------------------------- slots
 def _slot_dict(s: Slot) -> dict:
-    return {"id": s.id, "code": s.code, "zone": s.zone, "slot_type": s.slot_type,
+    return {"id": s.id, "code": s.code, "zone": s.zone, "section": s.section,
+            "slot_type": s.slot_type,
             "price_per_hour": s.price_per_hour, "status": s.status,
             "ev_charger": s.ev_charger}
 
@@ -88,6 +89,37 @@ def list_slots(db=Depends(get_db)):
             "summary": {"total": len(slots), "occupied": occ,
                         "free": len(slots) - occ,
                         "occupancy_pct": round(100 * occ / max(len(slots), 1), 1)}}
+
+
+def _db_slots(db) -> list[dict]:
+    """Serialize all slots for the recommender."""
+    return [{"id": s.id, "code": s.code, "zone": s.zone, "section": s.section,
+             "slot_type": s.slot_type, "price_per_hour": s.price_per_hour,
+             "status": s.status} for s in db.query(Slot).all()]
+
+
+@app.get("/api/v1/sections")
+def list_sections(db=Depends(get_db)):
+    """Parking sections (car / bike / ev / accessible) with live availability."""
+    slots = db.query(Slot).all()
+    out = []
+    for sec, spec in config.SECTIONS.items():
+        sec_slots = [s for s in slots if s.section == sec]
+        occ = sum(1 for s in sec_slots if s.status == "occupied")
+        out.append({
+            "id": sec,
+            "name": spec["name"],
+            "icon": spec["icon"],
+            "zones": spec["zones"],
+            "entrance": spec["entrance"],
+            "admits": spec["admits"],
+            "total": len(sec_slots),
+            "occupied": occ,
+            "free": len(sec_slots) - occ,
+            "occupancy_pct": round(100 * occ / max(len(sec_slots), 1), 1),
+            "price_from": min((s.price_per_hour for s in sec_slots), default=0.0),
+        })
+    return {"sections": out}
 
 
 @app.get("/api/v1/slots/{slot_id}")
@@ -103,9 +135,7 @@ def get_slot(slot_id: int, db=Depends(get_db)):
 def recommend(body: RecommendIn):
     db = SessionLocal()
     try:
-        slots = [{"id": s.id, "code": s.code, "zone": s.zone,
-                  "slot_type": s.slot_type, "price_per_hour": s.price_per_hour,
-                  "status": s.status} for s in db.query(Slot).all()]
+        slots = _db_slots(db)
         slot, mode = recommender.rl_pick(
             slots, body.vehicle_type, body.stay_minutes, simulator.sim_hour)
         if slot is None:
@@ -124,9 +154,7 @@ def recommend(body: RecommendIn):
 def checkin(body: CheckinIn):
     db = SessionLocal()
     try:
-        slots = [{"id": s.id, "code": s.code, "zone": s.zone,
-                  "slot_type": s.slot_type, "price_per_hour": s.price_per_hour,
-                  "status": s.status} for s in db.query(Slot).all()]
+        slots = _db_slots(db)
         slot_dict, mode = recommender.rl_pick(
             slots, body.vehicle_type, body.stay_minutes, simulator.sim_hour)
         if slot_dict is None:
@@ -209,13 +237,19 @@ def stats(db=Depends(get_db)):
         occ = sum(1 for s in zs if s.status == "occupied")
         by_zone[zone] = {"total": len(zs), "occupied": occ,
                          "occupancy_pct": round(100 * occ / max(len(zs), 1), 1)}
+    by_section = {}
+    for sec in config.SECTIONS:
+        ss = db.query(Slot).filter(Slot.section == sec).all()
+        occ = sum(1 for s in ss if s.status == "occupied")
+        by_section[sec] = {"total": len(ss), "occupied": occ, "free": len(ss) - occ,
+                           "occupancy_pct": round(100 * occ / max(len(ss), 1), 1)}
     return {"total_slots": total, "occupied": occupied,
             "occupancy_pct": round(100 * occupied / max(total, 1), 1),
             "revenue": round(revenue, 2), "active_bookings": active,
             "completed_bookings": completed,
             "sim_rejections": simulator.total_rejections,
             "sim_hour": round(simulator.sim_hour, 2),
-            "by_zone": by_zone}
+            "by_zone": by_zone, "by_section": by_section}
 
 
 # ---------------------------------------------------------------- users

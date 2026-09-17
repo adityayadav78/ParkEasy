@@ -16,6 +16,10 @@ smart recommendations; a Streamlit dashboard visualizes the lot in real time.
 
 ## Features
 
+- **Parking sections** — the lot is organized into named sections shown on both dashboards:
+  **🚗 Car** (zones A/B/P), **🛵 Bike / Two-Wheeler** (zone M), **⚡ EV Charging** (zone E), and
+  **♿ Accessible** (zone D) — each with its own entrance and live free/occupied counts
+  (`GET /api/v1/sections`).
 - **RL Parking Gym** (`parking_gym`) — a Gymnasium environment simulating a multi-slot parking lot
   with Poisson arrivals, stay durations, hourly demand curves, and vehicle-type constraints
   (car / EV / disabled / bike).
@@ -42,8 +46,8 @@ parkeasy/
 │   └── main.py                 # FastAPI app + standalone HTML dashboard at /
 ├── core/
 │   ├── __init__.py
-│   ├── config.py               # Lots, zones, pricing, simulation settings
-│   ├── database.py             # SQLAlchemy engine/session + ORM models
+│   ├── config.py               # Lots, zones, sections, pricing, simulation settings
+│   ├── database.py             # SQLAlchemy engine/session + ORM models (Slot.section)
 │   ├── simulator.py            # Continuous arrival/departure simulation (digital twin)
 │   └── recommender.py          # Slot recommendation logic (RL policy + heuristic fallback)
 ├── envs/
@@ -139,11 +143,12 @@ scarf charger/accessible slots.
 |---|---|---|
 | GET | `/api/v1/slots` | All slots + live status |
 | GET | `/api/v1/slots/{id}` | Single slot |
+| GET | `/api/v1/sections` | Parking sections (car/bike/EV/accessible) + live availability |
 | POST | `/api/v1/recommend` | Best slot for a vehicle + expected price |
 | POST | `/api/v1/checkin` | Assign slot, create booking + session |
 | POST | `/api/v1/checkout` | Close session, compute cost |
 | GET | `/api/v1/occupancy/history` | Time-series of occupancy |
-| GET | `/api/v1/stats` | KPIs (occupancy, revenue, rejections) |
+| GET | `/api/v1/stats` | KPIs (occupancy, revenue, rejections, by_zone, by_section) |
 | POST | `/api/v1/sim/tick` | Advance the digital-twin simulation |
 | POST | `/api/v1/sim/start` \| `/api/v1/sim/stop` | Auto-run simulation loop |
 | GET | `/api/v1/health` | Liveness |

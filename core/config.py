@@ -30,6 +30,42 @@ ZONES: dict[str, dict] = {
     "M": {"type": "bike",     "slots": 20, "price_per_hour": 8.0},
 }
 
+# ---------------------------------------------------------------- sections
+# Top-level parking sections shown on the dashboard (gates/entrances).
+# Each section groups one or more zones and admits a specific vehicle class.
+SECTIONS: dict[str, dict] = {
+    "car": {
+        "name": "Car Section",
+        "icon": "🚗",
+        "zones": ["A", "B", "P"],
+        "entrance": "Main Gate (North)",
+        "admits": "cars (standard & premium)",
+    },
+    "bike": {
+        "name": "Bike / Two-Wheeler Section",
+        "icon": "🛵",
+        "zones": ["M"],
+        "entrance": "East Gate (Two-Wheelers)",
+        "admits": "motorcycles & scooters only",
+    },
+    "ev": {
+        "name": "EV Charging Section",
+        "icon": "⚡",
+        "zones": ["E"],
+        "entrance": "South Gate (Charging Lane)",
+        "admits": "electric vehicles only",
+    },
+    "disabled": {
+        "name": "Accessible Section",
+        "icon": "♿",
+        "zones": ["D"],
+        "entrance": "Main Gate (North) — ramp access",
+        "admits": "disabled-permit holders",
+    },
+}
+SECTION_ORDER = list(SECTIONS)          # stable dashboard ordering
+ZONE_SECTION = {z: sec for sec, spec in SECTIONS.items() for z in spec["zones"]}
+
 # Vehicle classes allowed per slot type
 VEHICLE_ALLOWED_ZONES: dict[str, list[str]] = {
     "car":     ["A", "B", "P"],

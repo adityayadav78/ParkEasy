@@ -48,6 +48,12 @@ STATUS_COLORS = {"free": "#22c55e", "occupied": "#ef4444",
                  "reserved": "#f59e0b", "maintenance": "#94a3b8"}
 ZONE_ICONS = {"standard": "🚗", "premium": "⭐", "ev": "⚡",
               "disabled": "♿", "bike": "🛵"}
+SECTION_META = {
+    "car":      {"name": "Car Section",                "icon": "🚗"},
+    "bike":     {"name": "Bike / Two-Wheeler Section", "icon": "🛵"},
+    "ev":       {"name": "EV Charging Section",        "icon": "⚡"},
+    "disabled": {"name": "Accessible Section",         "icon": "♿"},
+}
 
 st.markdown("""
 <style>
@@ -120,28 +126,54 @@ if page == "Live Lot":
     c4.metric("Rejections (sim)", stats.get("sim_rejections", 0))
 
     st.divider()
+    # per-section availability at a glance
+    sections = api_get("/api/v1/sections", {}).get("sections", [])
+    if sections:
+        st.subheader("Parking sections")
+        sdf = pd.DataFrame([
+            {"Section": f"{s['icon']} {s['name']}", "Free": s["free"],
+             "Occupied": s["occupied"], "Total": s["total"],
+             "Occupancy %": s["occupancy_pct"], "From ₹/h": s["price_from"]}
+            for s in sections])
+        st.dataframe(sdf, width="stretch", hide_index=True)
+        st.caption(" · ".join(f"{s['icon']} {s['entrance']}" for s in sections))
+
     zones = {}
     for s in data["slots"]:
         zones.setdefault(s["zone"], []).append(s)
 
-    for zone, slots in zones.items():
-        ztype = slots[0]["slot_type"]
+    for sec, slots in [(k, [s for s in data["slots"] if s.get("section") == k])
+                       for k in SECTION_META]:
+        if not slots:
+            continue
+        meta = SECTION_META[sec]
         occ = sum(1 for s in slots if s["status"] == "occupied")
-        icon = ZONE_ICONS.get(ztype, "")
-        st.markdown(f"**Zone {zone}** {icon} "
-                    f"<span style='color:#94a3b8;font-size:0.85em'>({ztype} · "
-                    f"{occ}/{len(slots)} occupied · ₹{slots[0]['price_per_hour']}/h)"
-                    f"</span>", unsafe_allow_html=True)
-        cards_html = "<div class='lotmap'>"
-        for s in slots:
-            color = STATUS_COLORS.get(s["status"], "#94a3b8")
-            cards_html += (
-                f"<div class='slotcard' style='background:{color}' "
-                f"title='{s['code']} · {s['status']}'>"
-                f"{s['code']}</div>")
-        cards_html += "</div>"
-        st.markdown(cards_html, unsafe_allow_html=True)
-        st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+        st.markdown(
+            f"### {meta['icon']} {meta['name']} "
+            f"<span style='color:#94a3b8;font-size:0.8em'>"
+            f"({len(slots) - occ} free · {occ}/{len(slots)} occupied)</span>",
+            unsafe_allow_html=True)
+        for zone in sorted({s["zone"] for s in slots}):
+            zslots = zones.get(zone, [])
+            if not zslots:
+                continue
+            ztype = zslots[0]["slot_type"]
+            zocc = sum(1 for s in zslots if s["status"] == "occupied")
+            icon = ZONE_ICONS.get(ztype, "")
+            st.markdown(f"**Zone {zone}** {icon} "
+                        f"<span style='color:#94a3b8;font-size:0.85em'>({ztype} · "
+                        f"{zocc}/{len(zslots)} occupied · ₹{zslots[0]['price_per_hour']}/h)"
+                        f"</span>", unsafe_allow_html=True)
+            cards_html = "<div class='lotmap'>"
+            for s in zslots:
+                color = STATUS_COLORS.get(s["status"], "#94a3b8")
+                cards_html += (
+                    f"<div class='slotcard' style='background:{color}' "
+                    f"title='{s['code']} · {s['status']}'>"
+                    f"{s['code']}</div>")
+            cards_html += "</div>"
+            st.markdown(cards_html, unsafe_allow_html=True)
+            st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
 
     st.caption("🟩 free · 🟥 occupied · 🟧 reserved · ⬜ maintenance")
 
