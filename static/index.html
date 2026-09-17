@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ParkEasy — Live Parking</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header>
+    <h1>🅿️ ParkEasy</h1>
+    <div class="pill" id="api-status">connecting…</div>
+    <div class="pill" id="rl-status">RL: ?</div>
+    <div class="pill" id="sim-clock">sim 06:00</div>
+  </header>
+
+  <main>
+    <section class="kpis">
+      <div class="kpi"><span class="kpi-value" id="kpi-occ">–</span><span class="kpi-label">Occupancy</span></div>
+      <div class="kpi"><span class="kpi-value" id="kpi-free">–</span><span class="kpi-label">Free slots</span></div>
+      <div class="kpi"><span class="kpi-value" id="kpi-rev">–</span><span class="kpi-label">Revenue</span></div>
+      <div class="kpi"><span class="kpi-value" id="kpi-rej">–</span><span class="kpi-label">Rejections</span></div>
+    </section>
+
+    <section class="controls">
+      <button id="btn-start">▶ Auto simulate</button>
+      <button id="btn-stop">⏸ Stop</button>
+      <button id="btn-tick">⏩ Tick ×5</button>
+      <label class="veh">
+        Vehicle:
+        <select id="veh-type">
+          <option value="car">car</option>
+          <option value="ev">ev</option>
+          <option value="disabled">disabled</option>
+          <option value="bike">bike</option>
+        </select>
+      </label>
+      <label class="veh">Stay (min): <input id="stay" type="number" value="60" min="15" max="480" step="15" /></label>
+      <button id="btn-rec" class="primary">🔮 Recommend &amp; check-in</button>
+      <span id="book-result"></span>
+    </section>
+
+    <section id="lot"></section>
+
+    <div class="legend">
+      <span><i class="dot free"></i> free</span>
+      <span><i class="dot occupied"></i> occupied</span>
+      <span><i class="dot reserved"></i> reserved</span>
+      <span><i class="dot maintenance"></i> maintenance</span>
+    </div>
+  </main>
+
+  <footer>ParkEasy · RL-optimized parking · <a href="/docs">API docs</a></footer>
+  <script src="/static/app.js"></script>
+</body>
+</html>

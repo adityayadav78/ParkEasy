@@ -1,0 +1,26 @@
+# ParkEasy — dependencies
+# Python 3.10+
+
+# RL
+gymnasium>=0.29
+stable-baselines3>=2.3
+sb3-contrib>=2.3
+torch>=2.2
+
+# API
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pydantic>=2.6
+
+# Dashboard
+streamlit>=1.32
+plotly>=5.20
+altair<6
+
+# Data & DB
+numpy>=1.26
+pandas>=2.2
+sqlalchemy>=2.0
+
+# Utilities
+python-dateutil>=2.9
